@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida de Trenó - MULTIPLAYER CORRIGIDO!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #4682B4 40%, #191970 70%, #000033 100%);
+            font-family: 'Arial Black', Arial, sans-serif;
+            color: #FFF;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 5px solid #FFD700;
+            box-shadow: 0 0 40px rgba(255,215,0,0.7);
+            background: #000;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            font-size: 22px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .player-ui {
+            background: rgba(0,0,0,0.8);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 2px solid;
+            min-width: 180px;
+            text-align: center;
+        }
+        #player1-ui { border-color: #FF4500; }
+        #player2-ui { border-color: #32CD32; }
+        #instructions {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 90;
+            font-size: 18px;
+            line-height: 1.5;
+            border: 3px solid #FFD700;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0,0,0,0.95);
+            padding: 50px;
+            border-radius: 25px;
+            border: 4px solid #FFD700;
+            z-index: 200;
+            display: none;
+            font-size: 32px;
+            color: #FFD700;
+            max-width: 900px;
+        }
+        #podium {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            align-items: flex-end;
+        }
+        .podium-place {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            min-width: 160px;
+            font-size: 20px;
+        }
+        .podium-place.gold { 
+            background: linear-gradient(45deg, #FFD700, #FFA500); 
+            color: #000; 
+            height: 140px; 
+            box-shadow: 0 10px 30px rgba(255,215,0,0.6);
+        }
+        .podium-place.silver { 
+            background: linear-gradient(45deg, #C0C0C0, #E0E0E0); 
+            color: #000; 
+            height: 110px; 
+            box-shadow: 0 5px 20px rgba(192,192,192,0.4);
+        }
+        .podium-place.bronze { 
+            background: linear-gradient(45deg, #CD7F32, #DAA520); 
+            color: #FFF; 
+            height: 80px; 
+            box-shadow: 0 5px 20px rgba(205,127,50,0.4);
+        }
+        button {
+            background: linear-gradient(45deg, #FF4500, #FF6347);
+            border: none;
+            color: white;
+            padding: 20px 40px;
+            font-size: 28px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 25px;
+            box-shadow: 0 8px 25px rgba(255,69,0,0.5);
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(45deg, #FF6347, #FF4500);
+            transform: scale(1.08);
+        }
+        #countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            font-weight: bold;
+            z-index: 300;
+            color: #FFD700;
+            text-shadow: 0 0 30px #FF4500, 0 0 60px #FF0000;
+            display: none;
+        }
+        .powerup-icon {
+            position: absolute;
+            font-size: 40px;
+            z-index: 50;
+            pointer-events: none;
+            animation: float 1.5s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.1); }
+        }
+        #nameScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,50,0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 400;
+            text-align: center;
+        }
+        #nameScreen h1 {
+            font-size: 60px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 30px #FFD700;
+            color: #FFD700;
+        }
+        .name-input-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .name-input-container {
+            background: rgba(255,255,255,0.1);
+            border: 3px solid #FFD700;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            min-width: 250px;
+        }
+        .name-input-container h3 {
+            margin: 0 0 15px 0;
+            color: #FFD700;
+        }
+        #nameInput1, #nameInput2 {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid #FFD700;
+            border-radius: 12px;
+            padding: 15px 25px;
+            font-size: 24px;
+            color: white;
+            text-align: center;
+            width: 200px;
+            font-family: 'Arial Black', Arial, sans-serif;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s;
+        }
+        #nameInput1:focus, #nameInput2:focus {
+            outline: none;
+            box-shadow: 0 0 40px rgba(255,215,0,0.8);
+            transform: scale(1.05);
+        }
+        #nameInput1::placeholder, #nameInput2::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        #startButton {
+            padding: 25px 60px;
+            font-size: 32px;
+        }
+        #playerNameDisplay1, #playerNameDisplay2 {
+            position: absolute;
+            top: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 110;
+        }
+        #playerNameDisplay1 { left: 20px; border: 2px solid #FF4500; }
+        #playerNameDisplay2 { right: 20px; border: 2px solid #32CD32; }
+    </style>
+</head>
+<body>
+    <div id="nameScreen">
+        <h1>🏂 CORRIDA MULTIPLAYER 🏂</h1>
+        <p style="font-size: 28px; margin-bottom: 40px;">Digite os nomes dos 2 jogadores!</p>
+        
+        <div class="name-input-group">
+            <div class="name-input-container">
+                <h3>🎮 Jogador 1 (WASD)</h3>
+                <input type="text" id="nameInput1" placeholder="Jogador Vermelho" maxlength="12">
+            </div>
+            <div class="name-input-container">
+                <h3>⌨️ Jogador 2 (Setas)</h3>
+                <input type="text" id="nameInput2" placeholder="Jogador Verde" maxlength="12">
+            </div>
+        </div>
+        
+        <button id="startButton" onclick="startWithNames()">INICIAR CORRIDA 2V2! 🔥</button>
+        <p style="font-size: 18px; margin-top: 25px; opacity: 0.9;">
+            <strong>WASD</strong> / <strong>Setas</strong> = Trocar faixa | <strong>Shift/Espaço</strong> / <strong>↓/Enter</strong> = Acelerar
+        </p>
+    </div>
+
+    <div id="playerNameDisplay1"></div>
+    <div id="playerNameDisplay2"></div>
+
+    <div id="ui">
+        <div id="player1-ui" class="player-ui">
+            <div id="player1-name" style="font-size: 18px; margin-bottom: 5px;">Jogador 1</div>
+            <div id="player1-score">0m</div>
+            <div id="player1-speed">0 km/h</div>
+            <div id="player1-position">1º</div>
+        </div>
+        <div id="player2-ui" class="player-ui">
+            <div id="player2-name" style="font-size: 18px; margin-bottom: 5px;">Jogador 2</div>
+            <div id="player2-score">0m</div>
+            <div id="player2-speed">0 km/h</div>
+            <div id="player2-position">1º</div>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <strong>🏁 CORRIDA MULTIPLAYER - 2 JOGADORES! 🏁</strong><br><br>
+        <strong style="color: #FF4500;">🔴 JOGADOR 1:</strong> <strong>WASD</strong> + <strong>Shift/Espaço</strong><br>
+        <strong style="color: #32CD32;">🟢 JOGADOR 2:</strong> <strong>Setas</strong> + <strong>↓/Enter</strong><br><br>
+        • Colete <strong>⭐ Turbo (300+ km/h!)</strong> | <strong>🛡️ Escudo</strong> | <strong>❄️ Congelar rivais</strong><br>
+        • <strong>Primeiro nos 5000m VENCE!</strong>
+    </div>
+    
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    
+    <div id="gameOver">
+        <h2>🏆 FINAL DA CORRIDA 2V2! 🏆</h2>
+        <div id="podium"></div>
+        <p id="winMessage" style="font-size: 42px; margin: 30px 0; font-weight: bold;"></p>
+        <button onclick="restartGame()">NOVA CORRIDA 2V2!</button>
+    </div>
+
+    <div id="countdown">3</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas.getContext) {
+            alert('Seu navegador não suporta Canvas. Use Chrome/Firefox!');
+        }
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const nameScreen = document.getElementById('nameScreen');
+        const nameInput1 = document.getElementById('nameInput1');
+        const nameInput2 = document.getElementById('nameInput2');
+        const startButton = document.getElementById('startButton');
+        
+        const playerNameDisplay1 = document.getElementById('playerNameDisplay1');
+        const playerNameDisplay2 = document.getElementById('playerNameDisplay2');
+        
+        const player1UI = { name: document.getElementById('player1-name'), score: document.getElementById('player1-score'), 
+                           speed: document.getElementById('player1-speed'), position: document.getElementById('player1-position') };
+        const player2UI = { name: document.getElementById('player2-name'), score: document.getElementById('player2-score'), 
+                           speed: document.getElementById('player2-speed'), position: document.getElementById('player2-position') };
+        
+        const gameOverElement = document.getElementById('gameOver');
+        const podiumElement = document.getElementById('podium');
+        const winMessageElement = document.getElementById('winMessage');
+        const countdownElement = document.getElementById('countdown');
+
+        // Player names
+        let playerNames = ['Jogador 1', 'Jogador 2'];
+
+        // Game state
+        let gameRunning = false;
+        let gameStarted = false;
+        let raceTime = 0;
+        let finishLine = 5000;
+        let groundOffset = 0;
+
+        // Controles multiplayer - array de teclas pressionadas
+        const keysPressed = {};
+
+        // Event listeners para teclas específicas
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key.toLowerCase()] = true;
+            console.log('Tecla pressionada:', e.key); // Debug no console
+        });
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        // PLAYERS MULTIPLAYER
+        const players = [
+            { // Player 1 - VERMELHO
+                name: playerNames[0],
+                x: 120,
+                y: 400,
+                width: 80,
+                height: 50,
+                lane: 1,
+                targetLane: 1,
+                laneChangeSpeed: 0.18,
+                speed: 0,
+                maxSpeed: 0,
+                distance: 0,
+                boostTime: 0,
+                shield: false,
+                shieldTime: 0,
+                color: '#FF4500',
+                controls: { left: 'a', right: 'd', accelerate: 'shift' } // Simplificado para Shift
+            },
+            { // Player 2 - VERDE
+                name: playerNames[1],
+                x: 220,
+                y: 400,
+                width: 80,
+                height: 50,
+                lane: 1,
+                targetLane: 1,
+                laneChangeSpeed: 0.18,
+                speed: 0,
+                maxSpeed: 0,
+                distance: 0,
+                boostTime: 0,
+                shield: false,
+                shieldTime: 0,
+                color: '#32CD32',
+                controls: { left: 'arrowleft', right: 'arrowright', accelerate: 'arrowdown' } // Simplificado para ↓
+            }
+        ];
+
+        const lanes = [350, 400, 450];
+
+        // Power-ups
+        let powerups = [];
+        const powerupTypes = [
+            { emoji: '⭐', name: 'Turbo Boost', color: '#FFD700', effect: 'boost' },
+            { emoji: '🛡️', name: 'Escudo', color: '#00BFFF', effect: 'shield' },
+            { emoji: '❄️', name: 'Gelo', color: '#87CEEB', effect: 'freeze' }
+        ];
+
+        // Snow
+        let snowflakes = [];
+        for (let i = 0; i < 200; i++) {
+            snowflakes.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 4 + 1,
+                speed: Math.random() * 4 + 1,
+                sway: Math.random() * 0.04
+            });
+        }
+
+        nameInput1.addEventListener('keypress', e => { if (e.key === 'Enter') nameInput2.focus(); });
+        nameInput2.addEventListener('keypress', e => { if (e.key === 'Enter') startWithNames(); });
+
+        function startWithNames() {
+            playerNames[0] = nameInput1.value.trim() || 'Jogador Vermelho';
+            playerNames[1] = nameInput2.value.trim() || 'Jogador Verde';
+            
+            if (playerNames[0].length > 12) playerNames[0] = playerNames[0].substring(0, 12);
+            if (playerNames[1].length > 12) playerNames[1] = playerNames[1].substring(0, 12);
+            
+            players[0].name = playerNames[0];
+            players[1].name = playerNames[1];
+            
+            nameScreen.style.display = 'none';
+            playerNameDisplay1.textContent = `🔴 ${playerNames[0]}`;
+            playerNameDisplay2.textContent = `🟢 ${playerNames[1]}`;
+            
+            player1UI.name.textContent = playerNames[0];
+            player2UI.name.textContent = playerNames[1];
+            
+            startCountdown();
+        }
+
+        function startCountdown() {
+            countdownElement.style.display = 'block';
+            let count = 3;
+            countdownElement.textContent = count;
+            countdownElement.style.fontSize = '100px';
+            
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownElement.textContent = count;
+                    countdownElement.style.fontSize = `${120 - count * 10}px`;
+                } else if (count === 0) {
+                    countdownElement.textContent = 'VAI!';
+                    countdownElement.style.fontSize = '80px';
+                    setTimeout(() => {
+                        countdownElement.style.display = 'none';
+                        startRace();
+                    }, 1000);
+                    clearInterval(interval);
+                }
+            }, 1000);
+        }
+
+        function startRace() {
+            gameRunning = true;
+            gameStarted = true;
+            raceTime = 0;
+            powerups = [];
+            
+            players.forEach(p => {
+                p.distance = 0;
+                p.speed = 0;
+                p.maxSpeed = 0;
+                p.lane = 1;
+                p.targetLane = 1;
+                p.boostTime = 0;
+                p.shield = false;
+                p.shieldTime = 0;
+            });
+            console.log('Corrida iniciada!'); // Debug
+        }
+
+        function spawnPowerup() {
+            if (Math.random() < 0.02 && powerups.length < 4) {
+                const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+                const lane = Math.floor(Math.random() * 3);
+                powerups.push({
+                    x: Math.max(...players.map(p => p.distance)) + canvas.width * 1.2 + Math.random() * 800,
+                    lane: lane,
+                    type: type,
+                    collected: false
+                });
+            }
+        }
+
+        function updatePlayer(playerIndex) {
+            const player = players[playerIndex];
+            if (!gameRunning) return;
+
+            // Lane changing
+            const leftKey = keysPressed[player.controls.left];
+            const rightKey = keysPressed[player.controls.right];
+            
+            if (leftKey && player.lane > 0 && player.targetLane === player.lane) {
+                player.targetLane = player.lane - 1;
+            }
+            if (rightKey && player.lane < 2 && player.targetLane === player.lane) {
+                player.targetLane = player.lane + 1;
+            }
+
+            if (player.lane !== player.targetLane) {
+                const diff = player.targetLane - player.lane;
+                player.lane += diff * player.laneChangeSpeed;
+                if (Math.abs(diff) < 0.08) player.lane = player.targetLane;
+            }
+
+            player.y = lanes[Math.round(player.lane)];
+
+            // Acceleration 300 KM/H!
+            const accelerating = keysPressed[player.controls.accelerate];
+            const maxSpeedUnits = 300 / 3.6;
+            const baseSpeed = accelerating ? 200 / 3.6 : 60 / 3.6;
+            const accelRate = accelerating ? 0.9 : 0.4;
+            
+            player.speed += (baseSpeed - player.speed) * accelRate * 0.1;
+            if (player.speed > maxSpeedUnits) player.speed = maxSpeedUnits;
+
+            // Boost
+            if (player.boostTime > 0) {
+                player.boostTime--;
+                player.speed += 70;
+                if (player.speed > maxSpeedUnits * 1.6) player.speed = maxSpeedUnits * 1.6;
+            }
+
+            // Shield
+            if (player.shieldTime > 0) {
+                player.shieldTime--;
+                if (player.shieldTime <= 0) player.shield = false;
+            }
+
+            player.distance += player.speed * 0.12;
+            if (player.speed * 3.6 > player.maxSpeed) player.maxSpeed = player.speed * 3.6;
+
+            return player;
+        }
+
+        function updatePowerups() {
+            powerups.forEach((powerup, pIndex) => {
+                if (powerup.collected) return;
+
+                players.forEach((player, playerIndex) => {
+                    const screenX = canvas.width * 0.25 + (powerup.x - player.distance) * 0.1;
+                    const playerY = lanes[Math.round(player.lane)];
+                    const powerupY = lanes[powerup.lane];
+
+                    if (!powerup.collected && 
+                        Math.abs(screenX - player.x) < 60 && 
+                        Math.abs(playerY - powerupY) < 35) {
+                        
+                        powerup.collected = true;
+                        activatePowerup(powerup.type.effect, playerIndex);
+                        
+                        // Efeito visual
+                        const icon = document.createElement('div');
+                        icon.className = 'powerup-icon';
+                        icon.textContent = powerup.type.emoji;
+                        icon.style.left = (player.x + 40) + 'px';
+                        icon.style.top = (player.y - 30) + 'px';
+                        icon.style.color = player.color;
+                        document.body.appendChild(icon);
+                        setTimeout(() => icon.remove(), 2500);
+                    }
+                });
+            });
+
+            powerups = powerups.filter(p => !p.collected && p.x - Math.max(...players.map(pl => pl.distance)) > -500);
+            spawnPowerup();
+        }
+
+        function activatePowerup(effect, playerIndex) {
+            const player = players[playerIndex];
+            if (effect === 'boost') {
+                player.boostTime = 100;
+            } else if (effect === 'shield') {
+                player.shield = true;
+                player.shieldTime = 200;
+            } else if (effect === 'freeze') {
+                players.forEach((p, i) => {
+                    if (i !== playerIndex) {
+                        p.frozen = true;
+                        p.frozenTime = 200;
+                    }
+                });
+            }
+        }
+
+        function checkFinish() {
+            const leaderDistance = Math.max(...players.map(p => p.distance));
+            if (leaderDistance >= finishLine) {
+                endRace();
+            }
+        }
+
+        function endRace() {
+            gameRunning = false;
+            
+            const results = players.map((p, i) => ({
+                name: p.name,
+                dist: p.distance,
+                maxSpeed: p.maxSpeed,
+                time: raceTime,
+                index: i
+            }));
+            
+            results.sort((a, b) => b.dist - a.dist);
+            
+            // Update podium
+            podiumElement.innerHTML = '';
+            results.slice(0, 3).forEach((r, i) => {
+                const place = document.createElement('div');
+                place.className = `podium-place ${i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze'}`;
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+                place.innerHTML = `
+                    <div style="font-size: 32px; margin-bottom: 10px;">${medal}</div>
+                    <div style="font-weight: bold; font-size: 22px;">${r.name}</div>
+                    <div>${Math.floor(r.dist)}m</div>
+                    <div>${Math.floor(r.maxSpeed)} km/h</div>
+                `;
+                podiumElement.appendChild(place);
+            });
+
+            const winnerIndex = results[0].index;
+            winMessageElement.innerHTML = `
+                <span style="color: ${players[winnerIndex].color}; text-shadow: 0 0 20px ${players[winnerIndex].color}">
+                    🏆 ${results[0].name.toUpperCase()} VENCEU! 🏆
+                </span>
+                <br><small>${Math.floor(results[0].dist)}m em ${raceTime.toFixed(1)}s</small>
+            `;
+            
+            gameOverElement.style.display = 'block';
+        }
+
+        function updateUI() {
+            players.forEach((player, i) => {
+                const ui = i === 0 ? player1UI : player2UI;
+                ui.score.textContent = `${Math.floor(player.distance)}m`;
+                ui.speed.textContent = `${Math.floor(player.speed * 3.6)} km/h`;
+                
+                // Position
+                let position = 1;
+                players.forEach(other => {
+                    if (other.distance > player.distance) position++;
+                });
+                ui.position.textContent = `${position}º`;
+            });
+        }
+
+        function updateSnow() {
+            const maxSpeed = Math.max(...players.map(p => p.speed));
+            snowflakes.forEach(s => {
+                s.x -= s.speed + maxSpeed * 0.6;
+                s.y += s.speed * 0.6;
+                s.x += Math.sin(Date.now() * s.sway) * 2;
+                if (s.x < -20) s.x = canvas.width + 20;
+                if (s.y > canvas.height) s.y = -20;
+            });
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#000033';
+            ctx.fillRect(0, 0, canvas.width, 600);
+            
+            const time = Date.now() * 0.001;
+            for (let i = 0; i < 4; i++) {
+                const gradient = ctx.createLinearGradient(0, 80, 0, 350);
+                gradient.addColorStop(0, `hsla(${180 + i*40 + time*15}, 80%, 60%, 0.4)`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 80, canvas.width, 270);
+            }
+        }
+
+        function drawTrack() {
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 5;
+            ctx.setLineDash([30, 30]);
+            ctx.strokeRect(40, 320, canvas.width - 80, 170);
+            ctx.setLineDash([]);
+            
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(40, 385); ctx.lineTo(canvas.width - 40, 385);
+            ctx.moveTo(40, 435); ctx.lineTo(canvas.width - 40, 435);
+            ctx.stroke();
+        }
+
+        function drawSleigh(x, y, color, isPlayer1 = false, isPlayer2 = false) {
+            // Body
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
+            ctx.fillRect(x + 15, y + 15, 50, 25);
+            ctx.shadowBlur = 0;
+            
+            // Runners
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect(x, y + 35, 80, 10);
+            ctx.fillRect(x + 8, y + 28, 12, 12);
+            ctx.fillRect(x + 60, y + 28, 12, 12);
+            
+            // Details
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(x + 22, y + 20, 8, 6);
+            ctx.fillRect(x + 50, y + 20, 8, 6);
+            
+            // Driver
+            if (isPlayer1 || isPlayer2) {
+                ctx.fillStyle = isPlayer1 ? '#FF0000' : '#00FF00';
+                ctx.beginPath();
+                ctx.arc(x + 45, y + 12, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 38, y + 6, 16, 10);
+            }
+            
+            // Boost effect
+            if (players[0].boostTime > 0 && isPlayer1) {
+                ctx.fillStyle = `rgba(255, 100, 0, ${players[0].boostTime/100})`;
+                ctx.shadowColor = '#FF4500';
+                ctx.shadowBlur = 25;
+                ctx.beginPath();
+                ctx.arc(x + 8, y + 28, 45, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            if (players[1].boostTime > 0 && isPlayer2) {
+                ctx.fillStyle = `rgba(0, 255, 100, ${players[1].boostTime/100})`;
+                ctx.shadowColor = '#32CD32';
+                ctx.shadowBlur = 25;
+                ctx.beginPath();
+                ctx.arc(x + 8, y + 28, 45, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            
+            // Shield
+            players.forEach(p => {
+                if (p.shield && ((isPlayer1 && p === players[0]) || (isPlayer2 && p === players[1]))) {
+                    ctx.strokeStyle = '#00BFFF';
+                    ctx.shadowColor = '#00BFFF';
+                    ctx.shadowBlur = 20;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(x + 40, y + 25, 50, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function drawPlayers() {
+            const leaderDistance = Math.max(...players.map(p => p.distance));
+            players.forEach((player, i) => {
+                const screenX = canvas.width * 0.2 + (player.distance - leaderDistance + 500) * 0.12; // Câmera segue líder
+                if (screenX > -100 && screenX < canvas.width + 100) {
+                    drawSleigh(screenX, player.y, player.color, i === 0, i === 1);
+                }
+            });
+        }
+
+        function drawPowerups() {
+            const leaderDistance = Math.max(...players.map(p => p.distance));
+            powerups.forEach(p => {
+                if (p.collected) return;
+                const screenX = canvas.width * 0.25 + (p.x - leaderDistance) * 0.1;
+                if (screenX > -60 && screenX < canvas.width + 60) {
+                    ctx.font = '52px Arial';
+                    ctx.fillText(p.type.emoji, screenX + 12, lanes[p.lane] + 35);
+                    
+                    ctx.fillStyle = p.type.color;
+                    ctx.shadowColor = p.type.color;
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.arc(screenX + 42, lanes[p.lane] + 28, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function drawSnow() {
+            ctx.fillStyle = '#FFF';
+            snowflakes.forEach(s => {
+                ctx.globalAlpha = 0.9;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function drawGround() {
+            const maxSpeed = Math.max(...players.map(p => p.speed));
+            groundOffset += maxSpeed * 1.5;
+            if (groundOffset > 80) groundOffset = 0;
+            
+            ctx.fillStyle = '#F0F8FF';
+            ctx.fillRect(0, 480, canvas.width, 120);
+            
+            ctx.fillStyle = '#D0E0FF';
+            for (let i = 0; i < canvas.width; i += 50) {
+                const x = (i - groundOffset) % 100;
+                ctx.beginPath();
+                ctx.arc(x + 25, 525, 18, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawFinishLine() {
+            const leaderDistance = Math.max(...players.map(p => p.distance));
+            if (leaderDistance > finishLine - 600) {
+                const finishX = canvas.width * 0.25 + ((finishLine - leaderDistance) * 0.1);
+                if (finishX > 0 && finishX < canvas.width) {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(finishX - 8, 315, 16, 185);
+                    for (let y = 330; y < 485; y += 18) {
+                        ctx.fillStyle = (Math.floor(y / 18) % 2 === 0) ? '#FFF' : '#000';
+                        ctx.fillRect(finishX - 35, y, 70, 18);
+                    }
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 36px Arial';
+                    ctx.fillText('🏁 CHEGADA!', finishX - 120, 300);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawTrack();
+            drawGround();
+            drawSnow();
+            drawPowerups();
+            drawFinishLine();
+            drawPlayers();
+            requestAnimationFrame(draw);
+        }
+
+        function gameLoop() {
+            if (gameRunning) {
+                raceTime += 0.016;
+                
+                updatePlayer(0); // Player 1
+                updatePlayer(1); // Player 2
+                updatePowerups();
+                updateSnow();
+                updateUI();
+                checkFinish();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function restartGame() {
+            gameRunning = false;
+            nameScreen.style.display = 'flex';
+            nameInput1.value = '';
+            nameInput2.value = '';
+            nameInput1.focus();
+            gameOverElement.style.display = 'none';
+            document.querySelectorAll('.powerup-icon').forEach(el => el.remove());
+        }
+
+        // START
+        nameInput1.focus();
+        draw();
+        gameLoop();
+    </script>
+</body>
+</html>
